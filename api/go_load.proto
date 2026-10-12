@@ -1,0 +1,151 @@
+syntax = "proto3";
+
+package go_load.v1;
+
+option go_package = "go_load/internal/generated;go_load";
+
+import "google/api/annotations.proto";
+
+service GoLoadService {
+  rpc CreateAccount(CreateAccountRequest) returns (CreateAccountResponse) {
+    option (google.api.http) = {
+      post: "/v1/accounts"
+      body: "*"
+    };
+  }
+
+  rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse) {
+    option (google.api.http) = {
+      post: "/v1/sessions"
+      body: "*"
+    };
+  }
+
+  rpc CreateDownloadTask(CreateDownloadTaskRequest) returns (CreateDownloadTaskResponse) {
+    option (google.api.http) = {
+      post: "/v1/download-tasks"
+      body: "*"
+    };
+  }
+
+  rpc GetDownloadTaskList(GetDownloadTaskListRequest) returns (GetDownloadTaskListResponse) {
+    option (google.api.http) = {
+      get: "/v1/download-tasks"
+    };
+  }
+
+  rpc UpdateDownloadTask(UpdateDownloadTaskRequest) returns (UpdateDownloadTaskResponse) {
+    option (google.api.http) = {
+      patch: "/v1/download-tasks/{download_task_id}"
+      body: "*"
+    };
+  }
+
+  rpc DeleteDownloadTask(DeleteDownloadTaskRequest) returns (DeleteDownloadTaskResponse) {
+    option (google.api.http) = {
+      delete: "/v1/download-tasks/{download_task_id}"
+    };
+  }
+
+  rpc GetDownloadTaskFile(GetDownloadTaskFileRequest) returns (stream GetDownloadTaskFileResponse) {
+    option (google.api.http) = {
+      get: "/v1/download-tasks/{download_task_id}/file"
+    };
+  }
+}
+
+enum DownloadType{
+  DOWNLOAD_TYPE_UNSPECIFIED = 0;
+  DOWNLOAD_TYPE_HTTP = 1;
+}
+
+enum DownloadStatus{
+  DOWNLOAD_STATUS_UNSPECIFIED = 0;
+  DOWNLOAD_STATUS_PENDING= 1;
+  DOWNLOAD_STATUS_DOWNLOADING = 2;
+  DOWNLOAD_STATUS_FAILED = 3; 
+  DOWNLOAD_STATUS_SUCCESS = 4;
+
+}
+
+message Account{
+  uint64 account_id = 1; 
+  string account_name =2;
+}
+
+message DownloadTask{
+  uint64 down_load_id = 1; 
+  Account of_account = 2; 
+  DownloadType download_type = 3;
+  string url = 4;
+  DownloadStatus download_status = 5;
+}
+
+
+// CreateAccount
+message CreateAccountRequest {
+  string account_name = 1;
+  string password = 2;
+}
+
+message CreateAccountResponse {
+  uint64 account_id = 1;
+}
+
+// CreateSession
+message CreateSessionRequest {
+  string account_name = 1; 
+  string password = 2;
+}
+
+message CreateSessionResponse {
+  Account account = 1;
+}
+
+// CreateDownloadTask
+message CreateDownloadTaskRequest {
+  DownloadType download_type = 1;
+  string url = 2; 
+}
+
+message CreateDownloadTaskResponse {
+  DownloadTask download_task = 1;
+}
+
+// GetDownloadTaskList
+message GetDownloadTaskListRequest {
+  uint64 offset = 1; 
+  uint64 limit = 2;
+}
+
+message GetDownloadTaskListResponse {
+  repeated DownloadTask download_task = 1; 
+  uint64 total_download_task_count = 2;
+}
+
+// UpdateDownloadTask
+message UpdateDownloadTaskRequest {
+  uint64 download_task_id = 1; 
+  string url = 2; 
+}
+
+message UpdateDownloadTaskResponse {
+  DownloadTask download_task = 1;
+}
+
+// DeleteDownloadTask
+message DeleteDownloadTaskRequest {
+  uint64 download_task_id = 1;
+}
+
+message DeleteDownloadTaskResponse {
+}
+
+// GetDownloadTaskFile
+message GetDownloadTaskFileRequest {
+  uint64 download_task_id = 1;
+}
+
+message GetDownloadTaskFileResponse {
+  bytes data = 1; 
+}
