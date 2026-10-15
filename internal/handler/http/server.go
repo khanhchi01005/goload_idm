@@ -3,11 +3,9 @@ package http
 import (
 	"context"
 	go_load "go_load/internal/generated"
-	"log"
-	"net"
 	"net/http"
-	"runtime"
 
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -27,11 +25,11 @@ func NewServer() Server{
 
 func (s *server) Start(ctx context.Context) error{
 	mux := runtime.NewServeMux()
-	err := go_load.RegisterGoLoadServiceHandlerFromEndpoint(
+	if err := go_load.RegisterGoLoadServiceHandlerFromEndpoint(
 		ctx,
 		mux,
 		"0.0.0.0:8000",
-		[]grpc.DialOption(insecure.NewCredentials()),
+		[]grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())},
 	); err != nil {
 		return err
 	}

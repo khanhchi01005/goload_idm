@@ -2,6 +2,10 @@ package database
 
 import(
 	"context"
+	"database/sql"
+	"log"
+
+	"github.com/doug-martin/goqu/v9"
 )
 
 var (
@@ -13,8 +17,8 @@ const(
 	ColNameAccountPasswordHash			= "hash"
 )
 type AccountPassword struct{
-	OfAccountID  uint64 `sql:"of_account_id "`
-	Hash string `sql:"hash"`
+	OfAccountID  uint64 `db:"of_account_id"`
+	Hash string `db:"hash"`
 }
 
 type AccountPasswordDataAccessor interface{
@@ -32,16 +36,16 @@ func NewAccounPasswordDataAccessor(
 	database *goqu.Database,
 ) AccountPasswordDataAccessor{
 	return &accountPasswordDataAccessor{
-		database: database
+		database: database,
 	}
 }
 
 func (a *accountPasswordDataAccessor) CreateAccountPassword(ctx context.Context, accountPassword AccountPassword) error {
 	if _, err:= a.database.
-		Insert("password").
+		Insert(TabNameAccountPassword).
 		Rows(goqu.Record{
-			"of_user_id": accountPassword.OfAccountID,
-			"password": accountPassword.Hash,
+			ColNameAccountPasswordsOfAccountID: accountPassword.OfAccountID,
+			ColNameAccountPasswordHash:         accountPassword.Hash,
 		}).
 		Executor().
 		ExecContext(ctx); err != nil{
@@ -63,23 +67,22 @@ func (a *accountPasswordDataAccessor) GetAccountPassword(ctx context.Context, of
 	}
 
 	if !found{
-		return AccountPassword{}, err
+		return AccountPassword{}, sql.ErrNoRows
 	}
 
 	return accountPassword, nil 
 
 }
 
-func (a *accountPasswordDataAccessor) UpdateAccountPassword(ctx context.Context, password string) error{
-	accountPassword := AccountPassword{}
+func (a *accountPasswordDataAccessor) UpdateAccountPassword(ctx context.Context, accountPassword AccountPassword) error{
 	_, err := a.database.
 		Update(TabNameAccountPassword).
 		Set(goqu.Record{
-			ColNameAccountPasswordHash: password
+			ColNameAccountPasswordHash: accountPassword.Hash,
 		}).
 		Where(goqu.Ex{ColNameAccountPasswordsOfAccountID: accountPassword.OfAccountID}).
-		Executor.
-		ExecContext(ctx);
+		Executor().
+		ExecContext(ctx)
 	
 	if err != nil {
 		return err

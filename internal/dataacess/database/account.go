@@ -2,7 +2,9 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"log"
+	"github.com/doug-martin/goqu/v9"
 )
 
 var TabNameAccounts = goqu.T("accounts")
@@ -13,12 +15,12 @@ const (
 )
 
 type Account struct{
-	ID uint64 `sql:"user_id"`
-	AccountName string `sql:"username"`
+	ID uint64 `db:"id"`
+	AccountName string `db:"account_name"`
 }
 
 type AccountDataAccessor interface{
-	CreateAccount(ctx context.Context,account Account) error 
+	CreateAccount(ctx context.Context,account Account) (uint64, error) 
 	GetAccountByID (ctx context.Context, id uint64) (Account, error)
 	GetAccountByAccountName (ctx context.Context, accountName string) (Account, error)
 }
@@ -36,8 +38,9 @@ func NewAccountDataAccessor(
 }
 
 
-func (a *accountDataAccessor) CreateAccount(ctx context.Context, account Account) error {
-	if _, err:= a.database.
+func (a *accountDataAccessor) CreateAccount(ctx context.Context, account Account) (uint64 ,error) {
+	
+	result, err:= a.database.
 	Insert(TabNameAccounts).
 	Rows(goqu.Record{
 		ColNameAccountsAccountName: account.AccountName,
@@ -45,9 +48,14 @@ func (a *accountDataAccessor) CreateAccount(ctx context.Context, account Account
 	Executor().
 	ExecContext(ctx); err != nil{
 		log.Printf("failed to create account %v",err)
-		return err
+		return 0,err
 	}
-	return nil 
+	accountID, err := result.LastInsertId()
+	if err != nil{
+		return 0, err
+	}
+	
+	return uint64(accountID),nil 
 }
 
 func (a *accountDataAccessor) GetAccountByID (ctx context.Context, id uint64) (Account, error){
@@ -61,7 +69,7 @@ func (a *accountDataAccessor) GetAccountByID (ctx context.Context, id uint64) (A
 		return Account{}, err
 	}
 	if !found{
-		return Account{}, err
+		return Account{}, sql.ErrNoRows
 	}
 	return account, nil 
 }
@@ -77,7 +85,7 @@ func (a *accountDataAccessor) GetAccountByAccountName (ctx context.Context, acco
 		return Account{}, err
 	}
 	if !found{
-		return Account{}, err
+		return Account{}, sql.ErrNoRows
 	}
 	return account, nil 
 }

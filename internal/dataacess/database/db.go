@@ -15,7 +15,7 @@ import (
 
 func InitializeDB(
     ctx context.Context,
-    cfg configs.Database.Database,
+    cfg configs.Database,
 ) (*sql.DB, func(), error) {
     dsn := fmt.Sprintf(
         "%s:%s@tcp(%s:%s)/%s?parseTime=true",
