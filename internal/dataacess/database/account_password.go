@@ -25,16 +25,25 @@ type AccountPasswordDataAccessor interface{
 	CreateAccountPassword(ctx context.Context, accountPassword AccountPassword) error
 	GetAccountPassword(ctx context.Context, ofAccountID uint64) (AccountPassword, error)
 	UpdateAccountPassword(ctx context.Context, accountPassword AccountPassword) error
+	WithDatabase (db Database) AccountPasswordDataAccessor
 	
 }
 
 type accountPasswordDataAccessor struct{
-	database *goqu.Database;
+	database Database;
 }
+
+
 
 func NewAccounPasswordDataAccessor(
 	database *goqu.Database,
 ) AccountPasswordDataAccessor{
+	return &accountPasswordDataAccessor{
+		database: database,
+	}
+}
+
+func (a *accountPasswordDataAccessor) WithDatabase(database Database) AccountPasswordDataAccessor{
 	return &accountPasswordDataAccessor{
 		database: database,
 	}

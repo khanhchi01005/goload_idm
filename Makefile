@@ -8,7 +8,9 @@ OPENAPI_DIR := api
 
 PROTO_FILES := api/go_load.proto
 
-.PHONY: proto check
+WIRE_DIR := internal/wiring
+
+.PHONY: proto check wire
 
 proto:
 	protoc \
@@ -22,6 +24,9 @@ proto:
 		--grpc-gateway_opt=paths=source_relative \
 		--openapiv2_out=$(OPENAPI_DIR) \
 		$(PROTO_FILES)
+wire:
+	wire gen ./$(WIRE_DIR)
+
 check:
 	gofmt -l .
 	go vet ./...

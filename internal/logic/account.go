@@ -6,6 +6,8 @@ import (
 	"errors"
 	"go_load/internal/dataacess/database"
 	go_load "go_load/internal/generated"
+
+	"github.com/doug-martin/goqu/v9"
 )
 
 
@@ -35,6 +37,7 @@ type Account interface{
 }
 
 type account struct{
+	goquDatabase *goqu.Database 
 	accountDataAccessor database.AccountDataAccessor
 	accountPasswordDataAccessor database.AccountPasswordDataAccessor
 	hashLogic Hash  
@@ -42,11 +45,13 @@ type account struct{
 }
 
 func NewAccount(
+	goquDatabase *goqu.Database,
 	accountDataAccessor database.AccountDataAccessor,
 	accountPasswordDataAccessor database.AccountPasswordDataAccessor,
 	hashLogic Hash,
 ) Account{
 	return &account{
+		goquDatabase: goquDatabase,
 		accountDataAccessor: accountDataAccessor,
 		accountPasswordDataAccessor: accountPasswordDataAccessor,
 		hashLogic : hashLogic,
@@ -73,26 +78,34 @@ func (a *account)CreateAccount(ctx context.Context, param CreateAccountParams) (
 		return CreateAccountOuput{}, errors.New("Account name has been taken")
 	}
 
-	accountID, err := a.accountDataAccessor.CreateAccount(ctx, database.Account{
-		AccountName: param.AccountName,
+	var accountID uint64
+
+	txErr := a.goquDatabase.WithTx(func(td *goqu.TxDatabase) error{
+		accountID, err = a.accountDataAccessor.WithDatabase(td).CreateAccount(ctx, database.Account{
+			AccountName: param.AccountName,
+		})
+		if err != nil {
+		return  err
+	}
+
+		hashedPassword, err := a.hashLogic.Hash(ctx, param.Password)
+		if err != nil {
+			return err
+		}
+
+		err = a.accountPasswordDataAccessor.WithDatabase(td).CreateAccountPassword(ctx, database.AccountPassword{
+			OfAccountID: accountID,
+			Hash:        hashedPassword,
+		})
+		if err != nil{
+			return err
+		}
+		return nil
 	})
-	if err != nil {
-		return CreateAccountOuput{}, err
+	if txErr != nil{
+		return CreateAccountOuput{}, txErr
 	}
-
-	hashedPassword, err := a.hashLogic.Hash(ctx, param.Password)
-	if err != nil {
-		return err
-	}
-
-	err := a.accountPasswordDataAccessor.CreateAccountPassword(ctx, database.AccountPassword{
-		OfAccountID: accountID,
-		Hash: hashedPassword
-	})
-	if err != nil{
-		return CreateAccountOuput{}, err
-	}
-
+	
 	return CreateAccountOuput{
 		ID: accountID,
 		AccountName: param.AccountName,

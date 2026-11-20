@@ -8,18 +8,34 @@ import (
 	"google.golang.org/grpc/status"
 
 	go_load "go_load/internal/generated"
+	logic "go_load/internal/logic"
 )
 
 type Handler struct {
 	go_load.UnimplementedGoLoadServiceServer
+	accountLogic logic.Account 
+
 }
 
-func NewHandler() go_load.GoLoadServiceServer {
-	return &Handler{}
+func NewHandler(
+	accountLogic logic.Account,
+) go_load.GoLoadServiceServer {
+	return &Handler{
+		accountLogic: accountLogic,
+	}
 }
 
-func (h *Handler) CreateAccount(_ context.Context, _ *go_load.CreateAccountRequest) (*go_load.CreateAccountResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method CreateAccount not implemented")
+func (h *Handler) CreateAccount(ctx context.Context, request *go_load.CreateAccountRequest) (*go_load.CreateAccountResponse, error) {
+	output, err := h.accountLogic.CreateAccount(ctx, logic.CreateAccountParams{
+		AccountName: request.GetAccountName(),
+		Password:    request.GetPassword(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &go_load.CreateAccountResponse{
+		AccountId: output.ID,
+	}, nil
 }
 
 func (h *Handler) CreateSession(_ context.Context, _ *go_load.CreateSessionRequest) (*go_load.CreateSessionResponse, error) {
